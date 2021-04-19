@@ -122,6 +122,7 @@ def cross_cutting_framework(records, index):
                         next_max = inverted_list[pos + 1] if inverted_list[pos + 1] > next_max else next_max
                 else:
                     next_max = sid if sid > next_max else next_max
+                    break
             if count == len(r.elements):
                 ans.add((r.rid, max_sid))
             max_sid = next_max
