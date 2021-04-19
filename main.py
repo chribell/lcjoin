@@ -20,7 +20,8 @@ class TrieNode:
         self.is_leaf = False
 
     def __repr__(self):
-        return "Value: %s | next_max: %s | max_sid: %s | rid_list: %s" % (self.value, self.next_max, self.max_sid, self.rid_list)
+        return "Value: %s | next_max: %s | max_sid: %s | rid_list: %s" % (
+        self.value, self.next_max, self.max_sid, self.rid_list)
 
 
 class Trie(object):
@@ -91,13 +92,40 @@ def post_order_traverse(n, next_max, index):
             if n.is_leaf:
                 n.rid_list = n.records
             else:
-                n.rid_list = list(set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
+                n.rid_list = list(
+                    set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
         else:  # not found
             n.next_max = math.inf if is_last else sid
             n.rid_list = []
     else:  # is root custom
-        n.rid_list = list(set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
+        n.rid_list = list(
+            set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
     return n
+
+
+def cross_cutting_framework(records, index):
+    ans = set()
+    for r in records:
+        max_sid = 1
+        next_max = 1
+        end = False
+        while not end:
+            count = 0
+            # search inverted lists
+            for el in r.elements:
+                inverted_list = index[el - 1]
+                pos, sid = binary_search(inverted_list, max_sid)
+                end |= len(inverted_list) - 1 == pos or pos == -1
+                if sid == max_sid:
+                    count += 1
+                    if not end:
+                        next_max = inverted_list[pos + 1] if inverted_list[pos + 1] > next_max else next_max
+                else:
+                    next_max = sid if sid > next_max else next_max
+            if count == len(r.elements):
+                ans.add((r.rid, max_sid))
+            max_sid = next_max
+    return ans
 
 
 if __name__ == '__main__':
@@ -124,12 +152,26 @@ if __name__ == '__main__':
 
     print('Brute force: ', bf_ans)
 
-    lcjoin_ans = set()
+    print('-----------')
+
+    cross_ans = cross_cutting_framework(query, inv_index)
+
+    print('Cross-cutting framework', cross_ans)
+    print('Cross-cutting binary searches', TOTAL_BINARY_SEARCHES)
+    print("Correct:", "True" if len(bf_ans ^ cross_ans) == 0 else "False")
+    
+    print('-----------')
+
+    cross_cut_bs = TOTAL_BINARY_SEARCHES
+
+    tree_ans = set()
     while tr.root.max_sid != math.inf:
         tr.root = post_order_traverse(tr.root, 1, inv_index)
         for r in tr.root.rid_list:
-            lcjoin_ans.add((r, tr.root.max_sid))
+            tree_ans.add((r, tr.root.max_sid))
 
-    print('LCJoin: ', lcjoin_ans)
-    print('TOTAL_BINARY_SEARCHES', TOTAL_BINARY_SEARCHES)
-    print("Correct:", "True" if len(bf_ans ^ lcjoin_ans) == 0 else "False")
+    print('TreeBased: ', tree_ans)
+    print('TreeBased binary searches', TOTAL_BINARY_SEARCHES - cross_cut_bs)
+    print("Correct:", "True" if len(bf_ans ^ tree_ans) == 0 else "False")
+
+    print('-----------')
