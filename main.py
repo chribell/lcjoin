@@ -77,7 +77,6 @@ def post_order_traverse(n, next_max, res_sid, index, res):
     if n.is_leaf and n.max_sid == res_sid:
         for i in n.records:
             res.add((i, res_sid))
-        # print(n.records, ' join ', res_sid)
 
     next_max = max(next_max, n.next_max)
     for cid in n.children:
@@ -97,9 +96,6 @@ def post_order_traverse(n, next_max, res_sid, index, res):
             n.next_max = math.inf if is_last else inverted_list[pos + 1]
             if n.is_leaf:
                 n.rid_list = n.records
-            # else:
-            #     n.rid_list = list(
-            #         set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
         else:  # not found
             n.next_max = math.inf if is_last else sid
             n.rid_list = []
