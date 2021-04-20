@@ -83,7 +83,7 @@ def post_order_traverse(n, next_max, index):
     else:
         n.max_sid = min([n.children[c].max_sid for c in n.children])
 
-    if n.value != 'root':
+    if n.value != 'root' and n.max_sid != math.inf:
         inverted_list = index[n.value - 1]
         pos, sid = binary_search(inverted_list, n.max_sid)
         is_last = len(inverted_list) - 1 == pos or pos == -1
@@ -97,6 +97,7 @@ def post_order_traverse(n, next_max, index):
         else:  # not found
             n.next_max = math.inf if is_last else sid
             n.rid_list = []
+            n = post_order_traverse(n, next_max, index)
     else:  # is root custom
         n.rid_list = list(
             set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
