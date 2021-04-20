@@ -4,7 +4,7 @@ This is a prototype for the LCJoin algorithm as described in [1] and [2].
 
 
 ### TODO
- - Implement data partitioning techniques
+ - Process partitions as suggested in [2]
  - Develop a C++ version
  
 ### References
