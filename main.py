@@ -1,4 +1,6 @@
 import math
+from collections import defaultdict
+import heapq
 
 TOTAL_BINARY_SEARCHES = 0
 
@@ -7,6 +9,9 @@ class Record:
     def __init__(self, rid, elements):
         self.rid = rid
         self.elements = elements
+
+    def __repr__(self):
+        return "%s = %s" % (self.rid, self.elements)
 
 
 class TrieNode:
@@ -178,3 +183,31 @@ if __name__ == '__main__':
     print("Correct:", "True" if len(bf_ans ^ tree_ans) == 0 else "False")
 
     print('-----------')
+
+    treebased_bs = TOTAL_BINARY_SEARCHES - cross_cut_bs
+
+    histogram = defaultdict(int)
+    for q in query:
+        histogram[next(iter(q.elements))] += 1
+
+    num_partitions = 2
+    frequent_elements = heapq.nlargest(num_partitions, histogram)
+
+    lcjoin_ans = set()
+
+    for i in frequent_elements:
+        partition_query = [rec for rec in query if next(iter(rec.elements)) == i]
+        partition_dataset = [rec for rec in dataset if i in rec.elements]
+
+        trie = Trie()
+        for q in partition_query:
+            trie.insert(q)
+
+        index = create_inverted_index(partition_dataset, universe)
+
+        while trie.root.max_sid != math.inf:
+            trie.root = post_order_traverse(trie.root, 1, trie.root.res_sid, index, lcjoin_ans)
+
+    print('LCJoin: ', lcjoin_ans)
+    print('LCJoin binary searches', TOTAL_BINARY_SEARCHES - (cross_cut_bs + treebased_bs))
+    print("Correct:", "True" if len(bf_ans ^ lcjoin_ans) == 0 else "False")
