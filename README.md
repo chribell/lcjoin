@@ -4,7 +4,6 @@ This is a prototype for the LCJoin algorithm as described in [1] and [2].
 
 
 ### TODO
- - Integrate the early termination and the leaf propagation optimizations
  - Implement data partitioning techniques
  - Develop a C++ version
  

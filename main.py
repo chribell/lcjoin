@@ -15,6 +15,7 @@ class TrieNode:
         self.value = element
         self.max_sid = 1
         self.next_max = 1
+        self.res_sid = -1
         self.rid_list = []
         self.records = []
         self.is_leaf = False
@@ -72,11 +73,16 @@ def create_inverted_index(records, max_element):
     return index
 
 
-def post_order_traverse(n, next_max, index):
+def post_order_traverse(n, next_max, res_sid, index, res):
+    if n.is_leaf and n.max_sid == res_sid:
+        for i in n.records:
+            res.add((i, res_sid))
+        # print(n.records, ' join ', res_sid)
+
     next_max = max(next_max, n.next_max)
     for cid in n.children:
         if n.children[cid].max_sid <= n.max_sid:
-            n.children[cid] = post_order_traverse(n.children[cid], next_max, index)
+            n.children[cid] = post_order_traverse(n.children[cid], next_max, res_sid, index, res)
 
     if n.is_leaf:
         n.max_sid = next_max
@@ -91,16 +97,17 @@ def post_order_traverse(n, next_max, index):
             n.next_max = math.inf if is_last else inverted_list[pos + 1]
             if n.is_leaf:
                 n.rid_list = n.records
-            else:
-                n.rid_list = list(
-                    set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
+            # else:
+            #     n.rid_list = list(
+            #         set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
         else:  # not found
             n.next_max = math.inf if is_last else sid
             n.rid_list = []
-            n = post_order_traverse(n, next_max, index)
+            n = post_order_traverse(n, next_max, res_sid, index, res)
     else:  # is root custom
         n.rid_list = list(
             set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
+        n.res_sid = n.max_sid
     return n
 
 
@@ -168,9 +175,7 @@ if __name__ == '__main__':
 
     tree_ans = set()
     while tr.root.max_sid != math.inf:
-        tr.root = post_order_traverse(tr.root, 1, inv_index)
-        for r in tr.root.rid_list:
-            tree_ans.add((r, tr.root.max_sid))
+        tr.root = post_order_traverse(tr.root, 1, tr.root.res_sid, inv_index, tree_ans)
 
     print('TreeBased: ', tree_ans)
     print('TreeBased binary searches', TOTAL_BINARY_SEARCHES - cross_cut_bs)
