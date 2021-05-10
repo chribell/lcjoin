@@ -2,8 +2,6 @@ import math
 from collections import defaultdict
 import heapq
 
-TOTAL_BINARY_SEARCHES = 0
-
 
 class Record:
     def __init__(self, rid, elements):
@@ -27,7 +25,7 @@ class TrieNode:
 
     def __repr__(self):
         return "Value: %s | next_max: %s | max_sid: %s | rid_list: %s" % (
-        self.value, self.next_max, self.max_sid, self.rid_list)
+            self.value, self.next_max, self.max_sid, self.rid_list)
 
 
 class Trie(object):
@@ -52,9 +50,38 @@ class Trie(object):
         node.is_leaf = True
 
 
-def binary_search(lst, x):
-    global TOTAL_BINARY_SEARCHES
-    TOTAL_BINARY_SEARCHES = TOTAL_BINARY_SEARCHES + 1
+def read_dataset(filename):
+    dataset = []
+    max_element = 0
+    rid = 1
+    with open(filename, 'r') as f:
+        for line in f:
+            r = list(map(int, line.strip().split(' ')))
+            if max_element < r[-1]:
+                max_element = r[-1]
+            dataset.append(Record(rid, set(r)))
+            rid += 1
+    return dataset, max_element
+
+
+def index_binary_search(arr, x):
+    low = 0
+    high = len(arr) - 1
+    mid = 0
+
+    while low <= high:
+        mid = (high + low) // 2
+        if arr[mid] < x:
+            low = mid + 1
+        elif arr[mid] > x:
+            high = mid - 1
+        else:
+            return mid
+
+    return -1
+
+
+def successor_binary_search(lst, x):
     start = 0
     end = len(lst) - 1
     successor = -1
@@ -67,7 +94,7 @@ def binary_search(lst, x):
             successor = mid
             end = mid - 1
 
-    return successor, lst[successor]
+    return successor, lst[successor] if len(lst) > 0 else -1
 
 
 def create_inverted_index(records, max_element):
@@ -95,20 +122,19 @@ def post_order_traverse(n, next_max, res_sid, index, res):
 
     if n.value != 'root' and n.max_sid != math.inf:
         inverted_list = index[n.value - 1]
-        pos, sid = binary_search(inverted_list, n.max_sid)
-        is_last = len(inverted_list) - 1 == pos or pos == -1
+        pos, sid = successor_binary_search(inverted_list, n.max_sid)
         if sid == n.max_sid:
-            n.next_max = math.inf if is_last else inverted_list[pos + 1]
+            n.next_max = math.inf if len(inverted_list) - 1 == pos or pos == -1 else inverted_list[pos + 1]
             if n.is_leaf:
                 n.rid_list = n.records
         else:  # not found
-            n.next_max = math.inf if is_last else sid
+            n.next_max = math.inf if pos == -1 else sid
             n.rid_list = []
             n = post_order_traverse(n, next_max, res_sid, index, res)
-    else:  # is root custom
-        n.rid_list = list(
-            set().union(*[n.children[c].rid_list for c in n.children if n.children[c].max_sid == n.max_sid]))
+
+    if n.value == 'root':
         n.res_sid = n.max_sid
+
     return n
 
 
@@ -116,82 +142,67 @@ def cross_cutting_framework(records, index):
     ans = set()
     for r in records:
         max_sid = 1
-        next_max = 1
         end = False
         while not end:
             count = 0
+            tmp = []
             # search inverted lists
             for el in r.elements:
                 inverted_list = index[el - 1]
-                pos, sid = binary_search(inverted_list, max_sid)
-                end |= len(inverted_list) - 1 == pos or pos == -1
-                if sid == max_sid:
+                pos = index_binary_search(inverted_list, max_sid)
+                end |= len(inverted_list) - 1 == pos
+                if len(inverted_list) - 1 >= (pos + 1):
+                    tmp.append(inverted_list[pos + 1])
+                if pos >= 0:
                     count += 1
-                    if not end:
-                        next_max = inverted_list[pos + 1] if inverted_list[pos + 1] > next_max else next_max
-                else:
-                    next_max = sid if sid > next_max else next_max
-                    break
+                # TODO fix bug in case of early termination (deadlock behavior in some cases)
+                #  Example:
+                #  query = [Record(1, {1, 3, 5})]
+                #  dataset = [Record(1, {1, 3, 4, 5, 6}), Record(2, {1, 3, 5}), Record(3, {1, 2, 3, 4, 6}),
+                #   Record(4, {2, 4, 5, 6}), Record(5, {2, 3, 4, 5, 6}), Record(6, {2, 3, 4, 6}),
+                #   Record(7, {1, 2, 3, 6})]
+                # else:
+                #     break
             if count == len(r.elements):
                 ans.add((r.rid, max_sid))
-            max_sid = next_max
+            if tmp:
+                max_sid = max(tmp)
     return ans
 
 
-if __name__ == '__main__':
-
-    #query = [Record(1, {1, 2, 3, 4}), Record(2, {2, 3, 5}), Record(3, {1, 2, 5, 6}), Record(4, {1, 3, 5}), Record(5, {1, 3, 5}), Record(6, {1, 3, 5, 6})]
-    #query = [Record(1, {1, 2, 3, 4}), Record(2, {2, 3, 5}), Record(3, {1, 2, 5, 6}), Record(5, {2, 3})]
-    #query = [Record(1, {1, 3, 5}), Record(2, {1, 3, 5}), Record(3, {1, 3, 5, 6}), Record(4, {1}), Record(5, {1, 3, 5, 6})]
-    query = [Record(1, {1, 2, 3, 4}), Record(2, {2, 3, 5}), Record(3, {1, 2, 5, 6})]
-    dataset = [Record(1, {1, 3, 4, 5, 6}), Record(2, {1, 3, 5}), Record(3, {1, 2, 3, 4, 6}), Record(4, {2, 4, 5, 6}),
-               Record(5, {2, 3, 4, 5, 6}), Record(6, {2, 3, 4, 6}), Record(7, {1, 2, 3, 6})]
-
-    universe = 6
-
-    tr = Trie()
-    for q in query:
-        tr.insert(q)
-    inv_index = create_inverted_index(dataset, universe)
-
+def brute_force_join(query, dataset):
     bf_ans = set()
     for q in query:
         for d in dataset:
             if len(q.elements.intersection(d.elements)) == len(q.elements):
                 bf_ans.add((q.rid, d.rid))
+    return bf_ans
 
-    print('Brute force: ', bf_ans)
 
-    print('-----------')
+def cross_cut_join(query, dataset, universe):
+    inv_index = create_inverted_index(dataset, universe)
+    return cross_cutting_framework(query, inv_index)
 
-    cross_ans = cross_cutting_framework(query, inv_index)
 
-    print('Cross-cutting framework', cross_ans)
-    print('Cross-cutting binary searches', TOTAL_BINARY_SEARCHES)
-    print("Correct:", "True" if len(bf_ans ^ cross_ans) == 0 else "False")
-    
-    print('-----------')
-
-    cross_cut_bs = TOTAL_BINARY_SEARCHES
+def tree_based_join(query, dataset, universe):
+    tr = Trie()
+    for q in query:
+        tr.insert(q)
+    inv_index = create_inverted_index(dataset, universe)
 
     tree_ans = set()
     while tr.root.max_sid != math.inf:
         tr.root = post_order_traverse(tr.root, 1, tr.root.res_sid, inv_index, tree_ans)
 
-    print('TreeBased: ', tree_ans)
-    print('TreeBased binary searches', TOTAL_BINARY_SEARCHES - cross_cut_bs)
-    print("Correct:", "True" if len(bf_ans ^ tree_ans) == 0 else "False")
+    return tree_ans
 
-    print('-----------')
 
-    treebased_bs = TOTAL_BINARY_SEARCHES - cross_cut_bs
-
+def lcjoin(query, dataset, universe, num_of_partitions):
     histogram = defaultdict(int)
     for q in query:
         histogram[next(iter(q.elements))] += 1
 
-    num_partitions = 2
-    frequent_elements = heapq.nlargest(num_partitions, histogram)
+    frequent_elements = heapq.nlargest(num_of_partitions, histogram)
 
     lcjoin_ans = set()
 
@@ -208,6 +219,4 @@ if __name__ == '__main__':
         while trie.root.max_sid != math.inf:
             trie.root = post_order_traverse(trie.root, 1, trie.root.res_sid, index, lcjoin_ans)
 
-    print('LCJoin: ', lcjoin_ans)
-    print('LCJoin binary searches', TOTAL_BINARY_SEARCHES - (cross_cut_bs + treebased_bs))
-    print("Correct:", "True" if len(bf_ans ^ lcjoin_ans) == 0 else "False")
+    return lcjoin_ans
