@@ -197,24 +197,25 @@ def tree_based_join(query, dataset, universe):
     return tree_ans
 
 
-def lcjoin(query, dataset, universe, num_of_partitions):
+def lcjoin(query, dataset, universe):
     histogram = defaultdict(int)
     for q in query:
         histogram[next(iter(q.elements))] += 1
 
-    frequent_elements = heapq.nlargest(num_of_partitions, histogram)
+    frequencies = {k: v for k, v in sorted(histogram.items(), key=lambda item: item[1])}
+
+    index = create_inverted_index(dataset, universe)
 
     lcjoin_ans = set()
 
-    for i in frequent_elements:
+    for i in frequencies:
         partition_query = [rec for rec in query if next(iter(rec.elements)) == i]
-        partition_dataset = [rec for rec in dataset if i in rec.elements]
 
         trie = Trie()
         for q in partition_query:
             trie.insert(q)
 
-        index = create_inverted_index(partition_dataset, universe)
+        # TODO add global vs local index logic
 
         while trie.root.max_sid != math.inf:
             trie.root = post_order_traverse(trie.root, 1, trie.root.res_sid, index, lcjoin_ans)

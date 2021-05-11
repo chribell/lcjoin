@@ -12,7 +12,6 @@ def main(
     query: str = typer.Option("", help="Input query path"),
     out: str = typer.Option("", help="Output path"),
     algo: str = typer.Option("lcjoin", help="Algorithm to run"),
-    partitions: int = typer.Option(2, help="Number of partitions for LCJoin")
 ):
     read_start = timer()
     dataset, dataset_universe = lib.read_dataset(dataset)
@@ -28,7 +27,7 @@ def main(
     elif algo == "tree_based":
         res = lib.tree_based_join(query, dataset, universe)
     elif algo == "lcjoin":
-        res = lib.lcjoin(query, dataset, universe, partitions)
+        res = lib.lcjoin(query, dataset, universe)
     else:
         typer.echo(f"Wrong algorithm given", err=True)
         exit(1)

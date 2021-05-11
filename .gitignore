@@ -130,3 +130,8 @@ dmypy.json
 
 # IDE
 .idea/
+
+cmake-build-debug/
+cmake-build-debug-profiling/
+cmake-build-release/
+cmake-build-release-profiling/
