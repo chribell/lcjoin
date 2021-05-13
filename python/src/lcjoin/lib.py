@@ -59,7 +59,7 @@ def read_dataset(filename):
             r = list(map(int, line.strip().split(' ')))
             if max_element < r[-1]:
                 max_element = r[-1]
-            dataset.append(Record(rid, set(r)))
+            dataset.append(Record(rid, r))
             rid += 1
     return dataset, max_element
 
@@ -174,7 +174,7 @@ def brute_force_join(query, dataset):
     bf_ans = set()
     for q in query:
         for d in dataset:
-            if len(q.elements.intersection(d.elements)) == len(q.elements):
+            if len(set(q.elements).intersection(set(d.elements))) == len(q.elements):
                 bf_ans.add((q.rid, d.rid))
     return bf_ans
 
